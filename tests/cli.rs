@@ -1,16 +1,61 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
+use std::fs;
+
+type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
-fn dies_no_args() {
-    let mut cmd = Command::cargo_bin("rust-echor").unwrap();
+fn dies_no_args() -> TestResult {
+    let mut cmd = Command::cargo_bin("rust-echor")?;
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("USAGE"));    
+        .stderr(predicate::str::contains("USAGE"));
+    Ok(())
 }
 
 #[test]
-fn runs() {
-    let mut cmd = Command::cargo_bin("rust-echor").unwrap();
+fn runs() -> TestResult {
+    let mut cmd = Command::cargo_bin("rust-echor")?;
     cmd.arg("hello").assert().success();
+    Ok(())
+}
+
+#[test]
+fn hello1() -> TestResult {
+    let outfile = "tests/expected/hello1.txt";
+    let expected = fs::read_to_string(outfile)?;
+    let mut cmd = Command::cargo_bin("rust-echor")?;
+    cmd.arg("Hello there").assert().success().stdout(expected);
+    Ok(())
+}
+
+#[test]
+fn hello2() -> TestResult {
+    let expected = fs::read_to_string("tests/expected/hello2.txt")?;
+    let mut cmd = Command::cargo_bin("rust-echor")?;
+    cmd.args(vec!["Hello", "there"])
+        .assert()
+        .success()
+        .stdout(expected);
+    Ok(())
+}
+
+#[test]
+fn hello1_no_newline() -> TestResult {
+    run(&["Hello  there", "-n"],"tests/expected/hello1.n.txt")
+}
+
+#[test]
+fn hello2_no_newline() -> TestResult {
+    run(&["-n", "Hello", "there"], "tests/expected/hello2.n.txt")
+}
+
+fn run(args: &[&str], expected_file: &str) -> TestResult {
+    let expected = fs::read_to_string(expected_file)?;
+    Command::cargo_bin("rust-echor")?
+        .args(args)
+        .assert()
+        .success()
+        .stdout(expected);
+    Ok(())
 }
